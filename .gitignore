@@ -1,0 +1,4 @@
+/.idea/
+/vendor/
+# Don't include Lock file, not intended to be the root package.
+/composer.lock
