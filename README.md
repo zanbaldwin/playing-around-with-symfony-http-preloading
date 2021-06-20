@@ -51,9 +51,13 @@ class MyController
     {
         $this->http = new PreloadHttpClient($client);
 
-        // If using the CachingHttpClient, decorate it with the PreloadHttpClient not the other way around.
-        // PreloadHttpClient caches ResponseInterface references, not the content itself.
-        # $this->http = new PreloadHttpClient(new CachingHttpClient($client, new Store(sys_get_temp_dir())));
+        // If using the CachingHttpClient, decorate it with the PreloadHttpClient
+        // not the other way around. PreloadHttpClient caches ResponseInterface
+        // references, not the content itself.
+        # $this->http = new PreloadHttpClient(new CachingHttpClient(
+        #     $client,
+        #     new Store(sys_get_temp_dir())
+        # ));
     }
 
     public function exampleAction(): Response
@@ -61,28 +65,32 @@ class MyController
         $bookRequest = $this->http->request(
             Request::METHOD_GET,
             'http://localhost:8000/book/1',
-            // Specify in the options you want Link header suggestions to be preloaded.
+            // Specify you want Link header suggestions to be preloaded.
             ['extra' => ['fetch_preload' => true]]
         );
 
-        // As soon as the first chunk of the body arrives, the headers are available and PreloadHttpClient will parse
-        // all Link headers for preload requests. Then make a background request for each preload URL which is then put
-        // in an in-memory cache.
+        // As soon as the first chunk of the body arrives, the headers are available
+        // and PreloadHttpClient will parse all Link headers for preload requests.
+        // Then make a background request for each preload URL which is then put in
+        //an in-memory cache.
 
-        // Blocking call, will wait for the whole request to complete (meaning preload headers have already been parsed).
+        // Blocking call, will wait for the whole request to complete (meaning preload
+        // headers have already been parsed).
         $bookContent = $bookRequest->toArray();
 
-        // Request to "http://localhost:8000/author/1" already made in background, RequestInterface object returned from
-        // in-memory cache.
+        // Request to "http://localhost:8000/author/1" already made in background,
+        // RequestInterface object returned from in-memory cache.
         $authorRequest = $this->http->request(
             Request::METHOD_GET,
             sprintf('http://localhost:8000/author/%d', $bookContent['author']),
             [],
-            // In order to use the cache, specify the original request that this preload came from. This is to ensure
-            // that preload requests aren't "global", they belong to a specific original request.
+            // In order to use the cache, specify the original request that this preload
+            // came from. This is to ensure that preload requests aren't "global",
+            // they belong to a specific original request.
             $bookRequest
         );
-        // Blocking call, author request was made ahead of time but not guaranteed to be complete by this point.
+        // Blocking call, author request was made ahead of time but not guaranteed
+        // to be complete by this point.
         $authorContent = $authorRequest->toArray();
 
         return new JsonResponse([
@@ -99,24 +107,26 @@ class MyController
             // Specify in the options you want Link header suggestions to be preloaded.
             ['extra' => ['fetch_preload' => true]]
         );
-        // We know every book has a price endpoint, so we can request it immediately instead of waiting for the content
-        // to know which URL to request.
+        // We know every book has a price endpoint, so we can request it immediately
+        // instead of waiting for the content to know which URL to request.
         $priceResponse = $this->http->request(
             Request::METHOD_GET,
             'http://localhost:8000/book/1/price',
             [],
-            // In order to use the cache, specify the original request that this preload came from. This is to ensure
-            // that preload requests aren't "global", they belong to a specific original request.
+            // In order to use the cache, specify the original request that this
+            // preload came from. This is to ensure that preload requests aren't
+            // "global", they belong to a specific original request.
             $bookResponse
         );
 
-        // The first chunk of the book request body arrives, meaning the headers are parsed for preload links. It sees
-        // that "http://localhost:8000/book/1/price" has already been made as a sub-request of books, so uses that from
-        // the in-memory cache instead of making a new request.
+        // The first chunk of the book request body arrives, meaning the headers are
+        // parsed for preload links. It sees that "http://localhost:8000/book/1/price"
+        // has already been made as a sub-request of books, so uses that from the
+        // in-memory cache instead of making a new request.
 
-        // Once you're done making requests (bringing them into scope), remove references from the cache so the
-        // destructors behave as expected ($bookResponse and $priceResponse will still be usable in the scope of this
-        // method).
+        // Once you're done making requests (bringing them into scope), remove references
+        // from the cache so the destructors behave as expected ($bookResponse and
+        // $priceResponse will still be usable in the scope of this method).
         $this->http->clearPreloadedCache($bookResponse, $priceResponse);
 
         return new JsonResponse([
