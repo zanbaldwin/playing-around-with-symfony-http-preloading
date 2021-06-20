@@ -72,7 +72,7 @@ class MyController
         // As soon as the first chunk of the body arrives, the headers are available
         // and PreloadHttpClient will parse all Link headers for preload requests.
         // Then make a background request for each preload URL which is then put in
-        //an in-memory cache.
+        // an in-memory cache.
 
         // Blocking call, will wait for the whole request to complete (meaning preload
         // headers have already been parsed).

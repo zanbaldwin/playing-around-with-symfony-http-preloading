@@ -103,6 +103,7 @@ class Client implements HttpClientInterface
             // In case the main application pre-emptively makes a preload request before the first chunk of the original
             // request arrives, save it in the in-memory cache so that it's not re-requested during the passthru closure.
             $originalCacheKey = $this->generateCacheKey($originalResponse->getInfo('http_method'), $originalResponse->getInfo('url'));
+            $this->cache[$originalCacheKey] = $this->cache[$originalCacheKey] ?? [];
             $preloadCacheKey = $this->generateCacheKey($method, $url);
             $this->cache[$originalCacheKey][$preloadCacheKey] = $this->cache[$originalCacheKey][$preloadCacheKey]
                 ?? $response;
